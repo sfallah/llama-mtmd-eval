@@ -9,16 +9,24 @@ them. Because the two families pin incompatible transformers versions, this modu
 guards at runtime: it derives the active env from `transformers.__version__` and
 refuses a model whose `hf.env` doesn't match, with an actionable `uv sync` message.
 
-The vanilla custom code hardcodes `.cuda()` + `autocast("cuda", bf16)`; on CUDA that
-is the reference path. On a non-CUDA box we install a device shim (route `.cuda()`
-and `autocast("cuda")` -> CPU) so the model runs on CPU — an APPROXIMATE score, not
-an authoritative baseline.
+The reference regime is **fp32 weights + the model's internal autocast-bf16** (how the
+canonical scores were measured): loading bf16 *weights* is lossier and derails greedy
+decode on fragile images. So we load fp32 weights and let `model.infer()`'s hardcoded
+`autocast("cuda", bf16)` do the compute. On a non-CUDA box a device shim routes
+`.cuda()`/`autocast("cuda")` -> CPU (an APPROXIMATE score, not an authoritative baseline).
+
+PYTORCH_JIT is disabled so the custom code's `@torch.jit.script` (quick_gelu) runs eager
+instead of nvrtc-JIT-compiling a kernel — nvrtc rejects newer GPU archs (e.g. GB10 /
+Blackwell: "invalid value for --gpu-architecture"). Must be set before torch imports.
 """
 from __future__ import annotations
 
+import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+os.environ.setdefault("PYTORCH_JIT", "0")
 
 from .models import ModelSpec
 
@@ -82,14 +90,13 @@ def run_hf(spec: ModelSpec, model_dir: Path, image: Path, device: str = "auto") 
 
     tok = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
     tok.pad_token = tok.eos_token
+    # fp32 WEIGHTS on both paths (the reference regime); the model's internal
+    # autocast does bf16 compute. bf16 weights derail greedy decode on fragile images.
     model = AutoModel.from_pretrained(
         str(model_dir), trust_remote_code=True, use_safetensors=True,
-        attn_implementation="eager",
+        attn_implementation="eager", torch_dtype=torch.float32,
     ).eval()
-    if dev == "cuda":
-        model = model.cuda().to(torch.bfloat16)
-    else:
-        model = model.to("cpu")  # fp32 weights; autocast-bf16 compute via the shim
+    model = model.cuda() if dev == "cuda" else model.to("cpu")
 
     hf = spec.hf
     with tempfile.TemporaryDirectory() as out:  # infer() always mkdirs output_path
