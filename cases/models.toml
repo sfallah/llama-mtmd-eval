@@ -1,0 +1,62 @@
+# Model registry: one entry per family, carrying BOTH the llama.cpp side and the HF
+# reference side. gguf/mmproj are relative to gguf_dir; hf.dir is relative to hf_dir.
+# HF prompts carry the "<image>" placeholder the model.infer() expects.
+
+[models.v1]
+label = "DeepSeek-OCR"
+family = "deepseek-ocr"
+[models.v1.llama]
+gguf = "deepseek-ai/deepseek-ocr-bf16.gguf"
+mmproj = "deepseek-ai/mmproj-deepseek-ocr-bf16.gguf"
+prompt = "Free OCR."
+n_predict = 2048
+dry = false
+strip_grounding = false
+[models.v1.hf]
+dir = "deepseek-ai/DeepSeek-OCR"
+env = "hf-deepseek"
+prompt = "<image>\nFree OCR. "
+base_size = 1024
+image_size = 640
+crop_mode = true
+eval_mode = true
+
+[models.v2]
+label = "DeepSeek-OCR-2"
+family = "deepseek-ocr-2"
+[models.v2.llama]
+gguf = "deepseek-ai/deepseek-ocr-2-bf16.gguf"
+mmproj = "deepseek-ai/mmproj-deepseek-ocr-2-bf16.gguf"
+prompt = "Free OCR."
+n_predict = 2048
+dry = true
+strip_grounding = false
+[models.v2.hf]
+dir = "deepseek-ai/DeepSeek-OCR-2"
+env = "hf-deepseek"
+prompt = "<image>\nFree OCR. "
+base_size = 1024
+image_size = 768              # v2 local tile is 768 (v1/unlimited use 640)
+crop_mode = true
+eval_mode = true
+
+[models.unlimited]
+label = "Unlimited-OCR"
+family = "unlimited-ocr"
+[models.unlimited.llama]
+gguf = "baidu/unlimited-ocr-bf16.gguf"
+mmproj = "baidu/mmproj-unlimited-ocr-bf16.gguf"
+prompt = "document parsing."
+n_predict = 4096
+n_ctx = 16384
+dry = true
+strip_grounding = true
+[models.unlimited.hf]
+dir = "baidu/Unlimited-OCR"
+env = "hf-unlimited"
+prompt = "<image>document parsing."
+base_size = 1024
+image_size = 640
+crop_mode = true
+eval_mode = true
+infer_kwargs = { no_repeat_ngram_size = 35, ngram_window = 128 }

@@ -1,0 +1,15 @@
+# Copy to config.toml and edit for your machine. Every value can also be overridden
+# by an env var (MTMD_LLAMA_BIN, MTMD_GGUF_DIR, MTMD_HF_DIR, MTMD_DEVICE) or a CLI flag.
+# CLI > env > config.toml > built-in defaults.
+
+# Path to the llama.cpp llama-mtmd-cli binary (built with your backend: Metal / CUDA).
+llama_bin = "/Users/sabafallah/dev/qimia_ai_dev/llama.cpp/build/bin/llama-mtmd-cli"
+
+# Directory holding the GGUF models. models.toml gguf/mmproj paths are resolved against it.
+gguf_dir = "/Users/sabafallah/dev/qimia_ai_dev/llama.cpp/gguf_models"
+
+# Directory holding the HF model dirs. models.toml hf.dir paths are resolved against it.
+hf_dir = "/Users/sabafallah/dev/qimia_ai_dev/llama.cpp/hf_models"
+
+# HF device for the reference runner: auto | cuda | mps | cpu. "auto" = cuda>mps>cpu.
+device = "auto"

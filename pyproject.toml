@@ -1,0 +1,67 @@
+[project]
+name = "llama-mtmd-eval"
+version = "0.1.0"
+description = "Regression + evaluation harness for llama.cpp mtmd OCR models (DeepSeek-OCR v1/v2, Unlimited-OCR) vs HF references"
+readme = "README.md"
+authors = [
+    { name = "Saba Fallah", email = "10401143+sfallah@users.noreply.github.com" }
+]
+requires-python = ">=3.11,<3.13"
+# Base env = shared scoring + llama-mtmd-cli runner + compare/report.
+# Torch-free and cross-platform: the regression gate never touches the HF conflict.
+dependencies = [
+    "rapidfuzz>=3.9",   # locally_align (fuzz.partial_ratio_alignment)
+    "jiwer>=3.0",       # CER
+    "sacrebleu>=2.4",   # chrF
+]
+
+# HF reference environments. The two families pin mutually-incompatible transformers
+# versions, so they are separate extras declared conflicting (see [tool.uv] below).
+# Sync exactly one at a time: `uv sync --extra hf-deepseek` OR `uv sync --extra hf-unlimited`.
+[project.optional-dependencies]
+hf-deepseek = [            # DeepSeek-OCR (v1) + DeepSeek-OCR-2 (v2, custom code)
+    "torch",
+    "transformers==4.46.3",
+    "tokenizers==0.20.3",
+    "pillow",
+    "einops",
+    "addict",
+    "easydict",
+]
+hf-unlimited = [           # Baidu Unlimited-OCR (custom code)
+    "torch",
+    "transformers==4.57.1",
+    "pillow",
+    "einops",
+    "addict",
+    "easydict",
+]
+
+[project.scripts]
+mtmd-eval = "llama_mtmd_eval.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+# THE CRUX: the two HF extras are mutually exclusive; declaring the conflict lets one
+# uv.lock hold both resolutions so `uv sync --extra <one>` switches envs atomically.
+[tool.uv]
+conflicts = [
+    [{ extra = "hf-deepseek" }, { extra = "hf-unlimited" }],
+]
+
+# torch per-platform: pull cu128 wheels on the Spark box (linux/aarch64+CUDA); on macOS
+# fall back to PyPI (MPS/CPU). The index is `explicit` so only torch uses it.
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"

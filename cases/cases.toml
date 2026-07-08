@@ -1,0 +1,73 @@
+# Evaluation cases. `baseline` is the HF reference CER/chrF (or a provisional
+# llama self-measurement, flagged); `tol` is how far llama may drift and still pass.
+# image/ground_truth are filenames under data/images and data/ground_truth.
+
+[[cases]]
+model = "v1"
+label = "single-view scan"
+image = "test-1.jpeg"
+ground_truth = "test-1-ground-truth.txt"
+# Wide tol: the HF ref itself swings ~0.286-0.314 across precision configs.
+baseline = { cer = 0.3140, chrf = 67.57 }
+tol = { cer = 0.04, chrf = 5.0 }
+
+[[cases]]
+model = "v2"
+label = "single-view scan"
+image = "test-1.jpeg"
+ground_truth = "test-1-ground-truth.txt"
+# HF ref = deepseek-ai repo's own ImageOps.pad scores (NOT the transformers processor).
+baseline = { cer = 0.7761, chrf = 28.70 }
+tol = { cer = 0.12, chrf = 8.0 }
+
+[[cases]]
+model = "v1"
+label = "multi-tile (dynamic resolution)"
+image = "test-1-positive.png"
+ground_truth = "test-1-ground-truth.txt"
+baseline = { cer = 0.0000, chrf = 100.00 }
+tol = { cer = 0.03, chrf = 3.0 }
+
+[[cases]]
+model = "v2"
+label = "multi-tile (dynamic resolution)"
+image = "test-1-positive.png"
+ground_truth = "test-1-ground-truth.txt"
+baseline = { cer = 0.0236, chrf = 97.05 }
+tol = { cer = 0.03, chrf = 3.0 }
+
+[[cases]]
+model = "v1"
+label = "multi-column grid (2x3)"
+image = "test-multi-grid.jpg"
+ground_truth = "test-multi-grid-ground-truth.txt"
+baseline = { cer = 0.0584, chrf = 93.57 }
+tol = { cer = 0.03, chrf = 3.0 }
+
+[[cases]]
+model = "v2"
+label = "multi-column grid (2x3)"
+image = "test-multi-grid.jpg"
+ground_truth = "test-multi-grid-ground-truth.txt"
+baseline = { cer = 0.0211, chrf = 98.02 }
+tol = { cer = 0.03, chrf = 3.0 }
+
+[[cases]]
+model = "v1"
+label = "webpage screenshot (tall)"
+image = "webpage-tall.png"
+ground_truth = "webpage-tall-ground-truth.txt"
+# PROVISIONAL: llama.cpp bf16 self-measurement, not yet an HF reference.
+# Replace with `mtmd-eval hf --model v1` on the Spark box and tighten the tol.
+baseline = { cer = 0.2410, chrf = 81.10 }
+tol = { cer = 0.05, chrf = 6.0 }
+provisional = true
+
+[[cases]]
+model = "unlimited"
+label = "single-view scan"
+image = "test-1.jpeg"
+ground_truth = "test-1-ground-truth.txt"
+# Decoder runs full MHA, not R-SWA; the band absorbs that gap + bf16 variance.
+baseline = { cer = 0.1869, chrf = 75.23 }
+tol = { cer = 0.06, chrf = 6.0 }

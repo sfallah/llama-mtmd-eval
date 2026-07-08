@@ -1,0 +1,17 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Machine-specific config + generated results/scratch
+config.toml
+hf-deepseek.json
+hf-unlimited.json
+tmp-*
+
