@@ -37,6 +37,9 @@ hf-unlimited = [           # Baidu Unlimited-OCR (custom code)
     "einops",
     "addict",
     "easydict",
+    "matplotlib",          # imported by the Unlimited modeling code
+    "pymupdf",             # fitz — PDF/multi-page path
+    "psutil",
 ]
 
 [project.scripts]
