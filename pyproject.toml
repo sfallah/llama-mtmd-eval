@@ -21,6 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 hf-deepseek = [            # DeepSeek-OCR (v1) + DeepSeek-OCR-2 (v2, custom code)
     "torch",
+    "torchvision",
     "transformers==4.46.3",
     "tokenizers==0.20.3",
     "pillow",
@@ -30,6 +31,7 @@ hf-deepseek = [            # DeepSeek-OCR (v1) + DeepSeek-OCR-2 (v2, custom code
 ]
 hf-unlimited = [           # Baidu Unlimited-OCR (custom code)
     "torch",
+    "torchvision",
     "transformers==4.57.1",
     "pillow",
     "einops",
@@ -54,6 +56,9 @@ conflicts = [
 # fall back to PyPI (MPS/CPU). The index is `explicit` so only torch uses it.
 [tool.uv.sources]
 torch = [
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+torchvision = [
     { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
 ]
 
