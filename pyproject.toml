@@ -3,6 +3,8 @@ name = "llama-mtmd-eval"
 version = "0.1.0"
 description = "Regression + evaluation harness for llama.cpp mtmd OCR models (DeepSeek-OCR v1/v2, Unlimited-OCR) vs HF references"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Saba Fallah", email = "10401143+sfallah@users.noreply.github.com" }
 ]
@@ -55,14 +57,14 @@ conflicts = [
     [{ extra = "hf-deepseek" }, { extra = "hf-unlimited" }],
 ]
 
-# torch per-platform: pull cu128 wheels on the Spark box (linux/aarch64+CUDA); on macOS
-# fall back to PyPI (MPS/CPU). The index is `explicit` so only torch uses it.
+# torch per-platform: pull cu128 wheels on the Spark box (linux/aarch64+CUDA) only;
+# x86_64 Linux and macOS fall back to PyPI. The index is `explicit` so only torch uses it.
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
 ]
 torchvision = [
-    { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
 ]
 
 [[tool.uv.index]]

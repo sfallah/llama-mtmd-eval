@@ -3,13 +3,15 @@
 # CLI > env > config.toml > built-in defaults.
 
 # Path to the llama.cpp llama-mtmd-cli binary (built with your backend: Metal / CUDA).
-llama_bin = "/Users/sabafallah/dev/qimia_ai_dev/llama.cpp/build/bin/llama-mtmd-cli"
+llama_bin = "/path/to/llama.cpp/build/bin/llama-mtmd-cli"
 
 # Directory holding the GGUF models. models.toml gguf/mmproj paths are resolved against it.
-gguf_dir = "/Users/sabafallah/dev/qimia_ai_dev/llama.cpp/gguf_models"
+gguf_dir = "/path/to/gguf_models"
 
 # Directory holding the HF model dirs. models.toml hf.dir paths are resolved against it.
-hf_dir = "/Users/sabafallah/dev/qimia_ai_dev/llama.cpp/hf_models"
+# Only needed by the `hf` and `compare` commands.
+hf_dir = "/path/to/hf_models"
 
-# HF device for the reference runner: auto | cuda | mps | cpu. "auto" = cuda>mps>cpu.
+# HF device for the reference runner: auto | cuda | mps | cpu. "auto" picks cuda when
+# available, else cpu. mps/cpu run the CPU shim — scores are approximate, not baselines.
 device = "auto"

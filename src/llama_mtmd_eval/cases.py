@@ -7,7 +7,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import CASES_DIR
+from .config import CASES_DIR, repo_data_file
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class Case:
 
 
 def load_cases(path: Path | None = None, known_models: set[str] | None = None) -> list[Case]:
-    path = path or (CASES_DIR / "cases.toml")
+    path = repo_data_file(path or (CASES_DIR / "cases.toml"))
     with open(path, "rb") as f:
         raw = tomllib.load(f)["cases"]
     cases = []

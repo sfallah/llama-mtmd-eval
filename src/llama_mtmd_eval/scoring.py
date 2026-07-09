@@ -22,6 +22,7 @@ GROUNDING_TAG_RE = re.compile(r"<\|(ref|det)\|>.*?<\|/\1\|>", re.DOTALL)
 class Score:
     cer: float
     chrf: float
+    aligned: str = ""   # the OCR span that was scored (normalized)
 
 
 def strip_grounding(text: str) -> str:
@@ -70,4 +71,5 @@ def score(raw_ocr: str, ground_truth: str, *, strip_grounding_markup: bool = Fal
     expected = normalize_text(ground_truth)
     ocr = normalize_text(raw_ocr)
     aligned = locally_align(expected, ocr)
-    return Score(cer=compute_cer(expected, aligned), chrf=compute_chrf(expected, aligned))
+    return Score(cer=compute_cer(expected, aligned), chrf=compute_chrf(expected, aligned),
+                 aligned=aligned)

@@ -37,27 +37,69 @@ def _filter_cases(all_cases, model_sel, case_sel):
     return picked
 
 
-def _load(args):
+def _load(args, *, need_hf: bool = False):
     overrides = {
         "llama_bin": getattr(args, "llama_bin", None),
         "gguf_dir": getattr(args, "gguf_dir", None),
         "hf_dir": getattr(args, "hf_dir", None),
         "device": getattr(args, "device", None),
     }
-    cfg = load_config(Path(args.config) if args.config else None, overrides)
+    cfg = load_config(Path(args.config) if args.config else None, overrides, need_hf=need_hf)
     models = models_mod.load_models()
     all_cases = cases_mod.load_cases(known_models=set(models))
     picked = _filter_cases(all_cases, args.model, args.case)
     if not picked:
         raise SystemExit(f"no cases match --model {args.model!r} --case {args.case!r}")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     return cfg, models, picked
 
 
 def _emit(results, fmt, out):
-    text = report_mod.render(results, fmt)
+    print(report_mod.render(results, fmt))
     if out:
         Path(out).write_text(report_mod.to_json(results), encoding="utf-8")
-    print(text)
+
+
+def _preflight(spec, case, cfg, source) -> str:
+    """Missing-file report for a case, before spending minutes running it."""
+    paths = [("image", cfg.image(case.image)),
+             ("ground-truth", cfg.ground_truth(case.ground_truth))]
+    if source == "llama":
+        paths += [("llama-bin", cfg.llama_bin),
+                  ("model", cfg.gguf(spec.llama.gguf)),
+                  ("mmproj", cfg.gguf(spec.llama.mmproj))]
+    else:
+        paths += [("hf-model", cfg.hf_model(spec.hf.dir))]
+    missing = [f"{label} not found: {p}" for label, p in paths if not p.exists()]
+    return "; ".join(missing)
+
+
+def _run_case(spec, case, cfg, source, runner) -> "Result":
+    """Run one case; a failure becomes an ERROR row instead of killing the run."""
+    from .evaluate import error_result
+    problem = _preflight(spec, case, cfg, source)
+    if not problem:
+        try:
+            return runner()
+        except (RuntimeError, OSError) as e:
+            problem = str(e)
+    print(f"# ERROR {source} {case.model} -- {case.label}: {problem.splitlines()[0]}",
+          file=sys.stderr)
+    return error_result(spec, case, source, problem)
+
+
+def _split_by_hf_env(models, picked):
+    """Cases whose HF env matches the synced venv vs the rest (skipped, not fatal)."""
+    from .hf_runner import active_env
+    active = active_env()
+    runnable = [c for c in picked if models[c.model].hf.env == active]
+    for c in picked:
+        env = models[c.model].hf.env
+        if env != active:
+            print(f"# skip hf {c.model} -- {c.label}: needs `uv sync --extra {env}` "
+                  f"(active: {active or 'none'})", file=sys.stderr)
+    return runnable, active
 
 
 def cmd_llama(args) -> int:
@@ -66,32 +108,49 @@ def cmd_llama(args) -> int:
     results = []
     for c in picked:
         print(f"# llama {c.model} -- {c.label} ({c.image})", file=sys.stderr)
-        results.append(evaluate_llama(models[c.model], c, cfg))
+        spec = models[c.model]
+        results.append(_run_case(spec, c, cfg, "llama",
+                                 lambda: evaluate_llama(spec, c, cfg)))
     _emit(results, args.format, args.out)
-    return 0 if all(r.passed for r in results) else 1
+    return 0 if report_mod.gate(results) else 1
 
 
 def cmd_hf(args) -> int:
     from .evaluate import evaluate_hf
-    cfg, models, picked = _load(args)
+    cfg, models, picked = _load(args, need_hf=True)
+    device = args.device or cfg.device
+    runnable, active = _split_by_hf_env(models, picked)
+    if not runnable:
+        envs = sorted({models[c.model].hf.env for c in picked})
+        raise SystemExit(f"no selected model runs in the active env "
+                         f"({active or 'none'}). Sync one of: "
+                         + " | ".join(f"`uv sync --extra {e}`" for e in envs))
     results = []
-    for c in picked:
+    for c in runnable:
         print(f"# hf {c.model} -- {c.label} ({c.image})", file=sys.stderr)
-        results.append(evaluate_hf(models[c.model], c, cfg, device=args.device or "auto"))
+        spec = models[c.model]
+        results.append(_run_case(spec, c, cfg, "hf",
+                                 lambda: evaluate_hf(spec, c, cfg, device=device)))
     _emit(results, args.format, args.out)
     return 0
 
 
 def cmd_compare(args) -> int:
     from .evaluate import evaluate_hf, evaluate_llama
-    cfg, models, picked = _load(args)
+    cfg, models, picked = _load(args, need_hf=True)
+    device = args.device or cfg.device
+    hf_runnable, _ = _split_by_hf_env(models, picked)
     results = []
     for c in picked:
         print(f"# compare {c.model} -- {c.label} ({c.image})", file=sys.stderr)
-        results.append(evaluate_llama(models[c.model], c, cfg))
-        results.append(evaluate_hf(models[c.model], c, cfg, device=args.device or "auto"))
+        spec = models[c.model]
+        results.append(_run_case(spec, c, cfg, "llama",
+                                 lambda: evaluate_llama(spec, c, cfg)))
+        if c in hf_runnable:
+            results.append(_run_case(spec, c, cfg, "hf",
+                                     lambda: evaluate_hf(spec, c, cfg, device=device)))
     _emit(results, args.format, args.out)
-    return 0 if all(r.passed for r in results if r.source == "llama") else 1
+    return 0 if report_mod.gate(results) else 1
 
 
 def cmd_report(args) -> int:

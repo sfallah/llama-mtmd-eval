@@ -7,7 +7,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .config import CASES_DIR
+from .config import CASES_DIR, repo_data_file
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,7 @@ class HFSpec:
     image_size: int = 640
     crop_mode: bool = True
     eval_mode: bool = True
+    strip_grounding: bool = False
     infer_kwargs: dict = field(default_factory=dict)
 
 
@@ -43,7 +44,7 @@ class ModelSpec:
 
 
 def load_models(path: Path | None = None) -> dict[str, ModelSpec]:
-    path = path or (CASES_DIR / "models.toml")
+    path = repo_data_file(path or (CASES_DIR / "models.toml"))
     with open(path, "rb") as f:
         raw = tomllib.load(f)["models"]
     out: dict[str, ModelSpec] = {}

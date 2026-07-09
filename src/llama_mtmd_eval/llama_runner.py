@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .config import Config
 from .models import ModelSpec
+from .scoring import strip_grounding
 
 RUN_TIMEOUT = 300  # seconds
 
@@ -56,6 +57,8 @@ def run_mtmd_cli(spec: ModelSpec, image: Path, cfg: Config, flash_attn: bool = F
         stderr = result.stderr.decode("utf-8", errors="replace")
         raise RuntimeError(f"llama-mtmd-cli failed ({result.returncode})\n{stderr}")
     output = result.stdout.decode("utf-8", errors="replace").strip()
-    if not output:
-        raise RuntimeError("llama-mtmd-cli produced no output on stdout")
+    visible = strip_grounding(output) if spec.llama.strip_grounding else output
+    if not visible.strip():
+        raise RuntimeError("llama-mtmd-cli produced no output on stdout"
+                           + (" (after grounding strip)" if output else ""))
     return output

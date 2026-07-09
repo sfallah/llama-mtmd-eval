@@ -41,8 +41,12 @@ class HFResult:
     approximate: bool   # True when not run on CUDA (score is indicative, not a baseline)
 
 
-def _active_env() -> str | None:
-    import transformers
+def active_env() -> str | None:
+    """The conflict-extra the current venv satisfies, or None (incl. torch-free base)."""
+    try:
+        import transformers
+    except ImportError:
+        return None
     for prefix, env in _ENV_BY_VERSION_PREFIX.items():
         if transformers.__version__.startswith(prefix):
             return env
@@ -74,11 +78,11 @@ def _install_cpu_shim() -> None:
 
 
 def run_hf(spec: ModelSpec, model_dir: Path, image: Path, device: str = "auto") -> HFResult:
-    active = _active_env()
+    active = active_env()
     if spec.hf.env != active:
         raise SystemExit(
             f"model '{spec.key}' needs env '{spec.hf.env}' but the active transformers "
-            f"env is '{active or 'unknown'}'. Re-sync: `uv sync --extra {spec.hf.env}`"
+            f"env is '{active or 'none (torch-free base)'}'. Re-sync: `uv sync --extra {spec.hf.env}`"
         )
 
     import torch

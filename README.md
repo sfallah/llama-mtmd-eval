@@ -68,8 +68,9 @@ uv run mtmd-eval score out.txt data/ground_truth/test-1-ground-truth.txt
 ```
 
 `--model` takes `all` or a comma list of keys; `--case` filters by label/image
-substring. The `hf` command refuses a model whose env isn't synced, with the exact
-`uv sync --extra …` to run.
+substring. The `hf`/`compare` commands skip models whose env isn't synced (printing
+the exact `uv sync --extra …` to run) and error only if nothing is runnable. A case
+that fails to run becomes an ERROR row instead of aborting the remaining cases.
 
 ## Run on the Spark box (GB10, CUDA)
 
@@ -82,8 +83,9 @@ uv sync --extra hf-unlimited && uv run mtmd-eval hf --model unlimited --device c
 ```
 
 The HF numbers from CUDA are the authoritative baselines to paste into
-`cases/cases.toml` (in particular, they replace the *provisional* `webpage (tall)`
-baseline that is currently a llama self-measurement).
+`cases/cases.toml`. All bundled baselines (including `webpage (tall)`) are already
+HF CUDA references; the webpage case guards the llama.cpp deepseek-ocr fuse_row
+tile-drop fix and fails if right-column tiles get dropped again.
 
 ## Adding models / cases
 
@@ -91,7 +93,7 @@ Everything data-driven lives in TOML:
 
 - `cases/models.toml` — one entry per family: the llama side (`gguf`, `mmproj`,
   `prompt`, `n_predict`, `n_ctx`, `dry`, `strip_grounding`) and the HF side (`dir`,
-  `env`, `prompt`, `image_size`, `crop_mode`, `infer_kwargs`, …).
+  `env`, `prompt`, `image_size`, `crop_mode`, `strip_grounding`, `infer_kwargs`, …).
 - `cases/cases.toml` — a case is a `model` key + `image` + `ground_truth` + `baseline`
   {cer,chrf} + `tol` {cer,chrf}. Mark `provisional = true` if the baseline isn't yet an
   HF reference.

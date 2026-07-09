@@ -17,6 +17,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 CASES_DIR = PROJECT_ROOT / "cases"
 
+
+def repo_data_file(path: Path) -> Path:
+    """The bundled cases/ + data/ ship with the git checkout, not the wheel."""
+    if not path.exists():
+        raise SystemExit(
+            f"{path} not found — run from a repo checkout (`uv run mtmd-eval`); "
+            "installed wheels do not bundle cases/ and data/."
+        )
+    return path
+
 _ENV = {
     "llama_bin": "MTMD_LLAMA_BIN",
     "gguf_dir": "MTMD_GGUF_DIR",
@@ -29,13 +39,15 @@ _ENV = {
 class Config:
     llama_bin: Path
     gguf_dir: Path
-    hf_dir: Path
+    hf_dir: Path | None = None   # only needed by the hf/compare commands
     device: str = "auto"
 
     def gguf(self, rel: str) -> Path:
         return self.gguf_dir / rel
 
     def hf_model(self, rel: str) -> Path:
+        if self.hf_dir is None:
+            raise SystemExit(f"hf_dir is not configured (set it in config.toml or {_ENV['hf_dir']})")
         return self.hf_dir / rel
 
     def image(self, name: str) -> Path:
@@ -45,10 +57,13 @@ class Config:
         return DATA_DIR / "ground_truth" / name
 
 
-def load_config(config_path: Path | None = None, overrides: dict | None = None) -> Config:
+def load_config(config_path: Path | None = None, overrides: dict | None = None,
+                *, need_hf: bool = False) -> Config:
     """Merge defaults < config.toml < env vars < explicit overrides (CLI)."""
     values: dict[str, str] = {}
 
+    if config_path and not config_path.exists():
+        raise SystemExit(f"config file not found: {config_path}")
     path = config_path or (PROJECT_ROOT / "config.toml")
     if path.exists():
         with open(path, "rb") as f:
@@ -61,7 +76,8 @@ def load_config(config_path: Path | None = None, overrides: dict | None = None) 
     if overrides:
         values.update({k: v for k, v in overrides.items() if v is not None})
 
-    missing = [k for k in ("llama_bin", "gguf_dir", "hf_dir") if k not in values]
+    required = ("llama_bin", "gguf_dir") + (("hf_dir",) if need_hf else ())
+    missing = [k for k in required if k not in values]
     if missing:
         raise SystemExit(
             f"missing config: {', '.join(missing)}. Copy config.example.toml -> "
@@ -71,6 +87,6 @@ def load_config(config_path: Path | None = None, overrides: dict | None = None) 
     return Config(
         llama_bin=Path(values["llama_bin"]).expanduser(),
         gguf_dir=Path(values["gguf_dir"]).expanduser(),
-        hf_dir=Path(values["hf_dir"]).expanduser(),
+        hf_dir=Path(values["hf_dir"]).expanduser() if "hf_dir" in values else None,
         device=values.get("device", "auto"),
     )
