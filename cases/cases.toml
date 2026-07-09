@@ -59,9 +59,10 @@ label = "webpage screenshot (tall)"
 image = "webpage-tall.png"
 ground_truth = "webpage-tall-ground-truth.txt"
 # HF reads the tall page near-perfectly (0.0319); llama.cpp matches it (~0.0315) after
-# the deepseek-ocr fuse_row tile-drop fix in mtmd-image.cpp. This case surfaced that bug
-# (the in-repo test's images didn't) and now guards against a tall multi-column tiling
-# regression -- it fails if right-column tiles get dropped again.
+# the deepseek-ocr fuse_row tile-drop fix in mtmd-image.cpp. Only this case caught that
+# bug -- the 2x3 grid image hit it too, but its text is big enough to recover from the
+# global view. This page's text is tile-only, so it fails if right-column tiles get
+# dropped again.
 baseline = { cer = 0.0319, chrf = 96.53 }
 tol = { cer = 0.03, chrf = 3.0 }
 
