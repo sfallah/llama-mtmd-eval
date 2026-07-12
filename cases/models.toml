@@ -29,7 +29,8 @@ gguf = "deepseek-ai/deepseek-ocr-2-bf16.gguf"
 mmproj = "deepseek-ai/mmproj-deepseek-ocr-2-bf16.gguf"
 prompt = "Free OCR."
 n_predict = 2048
-dry = true
+# no guard: the v2 HF reference decodes unguarded; n_predict caps the run-on
+dry = false
 strip_grounding = false
 [models.v2.hf]
 dir = "deepseek-ai/DeepSeek-OCR-2"
