@@ -9,10 +9,10 @@ them. Because the two families pin incompatible transformers versions, this modu
 guards at runtime: it derives the active env from `transformers.__version__` and
 refuses a model whose `hf.env` doesn't match, with an actionable `uv sync` message.
 
-The reference regime is **fp32 weights + the model's internal autocast-bf16** (how the
-canonical scores were measured): loading bf16 *weights* is lossier and derails greedy
-decode on fragile images. So we load fp32 weights and let `model.infer()`'s hardcoded
-`autocast("cuda", bf16)` do the compute. On a non-CUDA box a device shim routes
+The reference regime is the ORIGINAL one: the shipped bf16 weights driven exactly as each
+model's own demo code runs them (`.to(torch.bfloat16)` + the internal autocast). Baselines
+must never come from a modified regime (an earlier fp32-weights load made llama.cpp bf16
+look artificially behind). On a non-CUDA box a device shim routes
 `.cuda()`/`autocast("cuda")` -> CPU (an APPROXIMATE score, not an authoritative baseline).
 
 PYTORCH_JIT is disabled so the custom code's `@torch.jit.script` (quick_gelu) runs eager
@@ -94,11 +94,10 @@ def run_hf(spec: ModelSpec, model_dir: Path, image: Path, device: str = "auto") 
 
     tok = AutoTokenizer.from_pretrained(str(model_dir), trust_remote_code=True)
     tok.pad_token = tok.eos_token
-    # fp32 WEIGHTS on both paths (the reference regime); the model's internal
-    # autocast does bf16 compute. bf16 weights derail greedy decode on fragile images.
+    # original shipped weights (bf16), as the reference demos load them
     model = AutoModel.from_pretrained(
         str(model_dir), trust_remote_code=True, use_safetensors=True,
-        attn_implementation="eager", torch_dtype=torch.float32,
+        attn_implementation="eager", torch_dtype=torch.bfloat16,
     ).eval()
     model = model.cuda() if dev == "cuda" else model.to("cpu")
 
