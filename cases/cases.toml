@@ -76,3 +76,15 @@ ground_truth = "test-1-ground-truth.txt"
 # purpose: plain master runs full MHA (~0.21 on CUDA) and FAILS until R-SWA lands.
 baseline = { cer = 0.1591, chrf = 77.48 }
 tol = { cer = 0.04, chrf = 5.0 }
+
+[[cases]]
+model = "unlimited"
+label = "dense tables (paper page)"
+image = "paper-tables.png"
+ground_truth = "paper-tables-ground-truth.txt"
+# From HF discussion sabafallah/Unlimited-OCR-GGUF#1: aggressive DRY (allowed-length 2)
+# garbled the tables' HTML while the prose stayed clean. GT = the HF reference output
+# (release config), which reads this page exactly. Tight band so table garbling FAILs
+# (the old DRY regime scores 0.0478 here).
+baseline = { cer = 0.0000, chrf = 100.00 }
+tol = { cer = 0.02, chrf = 2.0 }
