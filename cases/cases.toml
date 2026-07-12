@@ -1,15 +1,15 @@
-# Evaluation cases. `baseline` is the HF reference CER/chrF (DeepSeek-OCR family on
-# CUDA / GB10, fp32 weights + internal autocast-bf16 — the definitive regime); `tol` is
-# how far llama.cpp may drift and still pass. image/ground_truth are filenames under
-# data/images and data/ground_truth.
+# Evaluation cases. `baseline` is the HF reference CER/chrF measured in the RELEASE
+# regime: original shipped weights (bf16), the model's own infer() defaults, CUDA (GB10);
+# `tol` is how far llama.cpp may drift and still pass. image/ground_truth are filenames
+# under data/images and data/ground_truth.
 
 [[cases]]
 model = "v1"
 label = "single-view scan"
 image = "test-1.jpeg"
 ground_truth = "test-1-ground-truth.txt"
-# Fragile image: llama Metal (~0.32) sits ~0.05 above the fp32 CUDA HF ref; wide tol.
-baseline = { cer = 0.2727, chrf = 68.36 }
+# Fragile image: llama Metal (~0.32) sits ~0.04 above the CUDA HF ref; wide tol.
+baseline = { cer = 0.2811, chrf = 67.24 }
 tol = { cer = 0.06, chrf = 6.0 }
 
 [[cases]]
@@ -18,7 +18,7 @@ label = "single-view scan"
 image = "test-1.jpeg"
 ground_truth = "test-1-ground-truth.txt"
 # v2 reads this small single view poorly (HF worse than llama here); wide band.
-baseline = { cer = 0.7971, chrf = 22.17 }
+baseline = { cer = 0.7727, chrf = 14.00 }
 tol = { cer = 0.12, chrf = 8.0 }
 
 [[cases]]
@@ -50,7 +50,7 @@ model = "v2"
 label = "multi-column grid (2x3)"
 image = "test-multi-grid.jpg"
 ground_truth = "test-multi-grid-ground-truth.txt"
-baseline = { cer = 0.0000, chrf = 100.00 }
+baseline = { cer = 0.0211, chrf = 98.02 }
 tol = { cer = 0.03, chrf = 3.0 }
 
 [[cases]]
@@ -71,7 +71,8 @@ model = "unlimited"
 label = "single-view scan"
 image = "test-1.jpeg"
 ground_truth = "test-1-ground-truth.txt"
-# Decoder runs full MHA, not R-SWA; band absorbs that gap, bf16 variance,
-# and upstream CUDA kernel drift (0.2037 -> 0.2104 across a llama.cpp bump).
-baseline = { cer = 0.1557, chrf = 76.55 }
-tol = { cer = 0.07, chrf = 6.0 }
+# Reference runs the release default R-SWA (infer()'s ring buffer, window 128);
+# llama.cpp matches it with LLAMA_SWA_TYPE_REFERENCE (PR #24975). Band is tight on
+# purpose: plain master runs full MHA (~0.21 on CUDA) and FAILS until R-SWA lands.
+baseline = { cer = 0.1591, chrf = 77.48 }
+tol = { cer = 0.04, chrf = 5.0 }
