@@ -17,7 +17,11 @@ class LlamaSpec:
     prompt: str = "Free OCR."
     n_predict: int = 2048
     n_ctx: int | None = None
+    # Keep DRY weak (long allowed length, small window) or it garbles the
+    # legitimate repetition in dense HTML tables.
     dry: bool = False
+    dry_allowed_length: int = 2
+    dry_penalty_last_n: int = -1
     strip_grounding: bool = False
 
 

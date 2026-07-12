@@ -37,8 +37,8 @@ def build_cmd(spec: ModelSpec, image: Path, cfg: Config, flash_attn: bool = Fals
         cmd += [
             "--dry-multiplier", "0.8",
             "--dry-base", "1.75",
-            "--dry-allowed-length", "2",
-            "--dry-penalty-last-n", "-1",
+            "--dry-allowed-length", str(ll.dry_allowed_length),
+            "--dry-penalty-last-n", str(ll.dry_penalty_last_n),
             "--dry-sequence-breaker", "none",
         ]
     if ll.n_ctx is not None:

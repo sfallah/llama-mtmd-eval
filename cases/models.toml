@@ -49,7 +49,10 @@ mmproj = "baidu/mmproj-unlimited-ocr-bf16.gguf"
 prompt = "document parsing."
 n_predict = 4096
 n_ctx = 16384
+# mirror the HF reference's no_repeat_ngram_size=35 / ngram_window=128
 dry = true
+dry_allowed_length = 35
+dry_penalty_last_n = 128
 strip_grounding = true
 [models.unlimited.hf]
 dir = "baidu/Unlimited-OCR"
