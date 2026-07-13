@@ -86,5 +86,11 @@ ground_truth = "paper-tables-ground-truth.txt"
 # garbled the tables' HTML while the prose stayed clean. GT = the HF reference output
 # (release config), which reads this page exactly. Tight band so table garbling FAILs
 # (the old DRY regime scores 0.0478 here).
+#
+# The cer tol also guards the max_tiles fix (llama.cpp PR #25614). HF tiles this page
+# 5x6=30 (dynamic_preprocess max_num=32); before the fix llama.cpp capped Unlimited-OCR
+# at DeepSeek-OCR v1's 9 and picked 2x3=6, scoring 0.0136. With 30 tiles it scores 0.0107.
+# Both numbers are identical on Metal and CUDA, so the band sits between them: a tree
+# WITHOUT #25614 (or an mmproj lacking clip.vision.preproc_max_tiles) FAILs here by design.
 baseline = { cer = 0.0000, chrf = 100.00 }
-tol = { cer = 0.02, chrf = 2.0 }
+tol = { cer = 0.012, chrf = 2.0 }
